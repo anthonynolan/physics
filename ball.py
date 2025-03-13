@@ -2,6 +2,7 @@ import pygame
 import sys
 import random
 import numpy as np
+from utils import generate_tone
 
 pygame.init()
 
@@ -21,30 +22,25 @@ body1 = pygame.Rect(0 + radius, 0 + radius, 50, 50)
 body2 = pygame.Rect(0 + radius + x_offset, 0 + radius + random.randint(0, 150), 50, 50)
 cathal = pygame.Rect(2 * x_offset, 0, 50, 50)
 
-t = pygame.time.get_ticks() / 1000
+t0 = 0
+def reset_time():
+    global t0
+    t0 = pygame.time.get_ticks() / 1000
+reset_time()
 
+sound = False
 
 def update(body1, with_sound=False):
+    global sound
     y = body1.y
-    t = pygame.time.get_ticks() / 1000
+    t = pygame.time.get_ticks() / 1000 -t0
     y1 = y + v * t + 0.5 * g * t**2
     body1.y = y1
 
-    if with_sound:
+    if with_sound and sound:
         sound = generate_tone(y + 440, 0.06)
         sound.play()
 
-
-def generate_tone(frequency, duration=1.0, amplitude=0.5, sample_rate=44100):
-    t = np.linspace(0, duration, int(sample_rate * duration))
-    wave = amplitude * np.sin(2 * np.pi * frequency * t)
-    # Convert to 16-bit integers
-    sound_data = (wave * 32767).astype(np.int16)
-    # Make it 2D for stereo and ensure it's C-contiguous
-    sound_data = np.column_stack((sound_data, sound_data))
-    # Ensure the array is C-contiguous
-    sound_data = np.ascontiguousarray(sound_data)
-    return pygame.sndarray.make_sound(sound_data)
 
 
 pygame.mixer.init(16000, -16, 2, 2048)
@@ -58,6 +54,7 @@ v = 0
 counter = 0
 freeze = False
 
+
 while all([body1.y < height - radius, body2.y < height - radius]):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -68,6 +65,8 @@ while all([body1.y < height - radius, body2.y < height - radius]):
             if event.key == pygame.K_SPACE:
                 print("Space bar was pressed")
                 freeze = not freeze
+                if not freeze:
+                    reset_time()
 
     if not freeze:
         counter += 1
