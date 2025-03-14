@@ -1,66 +1,78 @@
 import pygame
 import sys
-import random
 import numpy as np
-from utils import generate_tone
 
 pygame.init()
 
-width = 800
-height = 600
+width = 1600
+height = 1200
 
 radius = 25
 
-g = 9.8
+g = 200.0  # Increased by 10x for faster movement
 
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 
-x_offset = 100
+# Center of the screen (source of gravity)
+center = np.array([width//2, height//2])
 
-body1 = pygame.Rect(0 + radius, 0 + radius, 50, 50)
-body2 = pygame.Rect(0 + radius + x_offset, 0 + radius + random.randint(0, 150), 50, 50)
-cathal = pygame.Rect(2 * x_offset, 0, 50, 50)
+# Initial position of the ball
+pos = np.array([0 + radius, 0 + radius])
+vel = np.array([150.0, 20.0])  # Initial velocity vector (not pointed at the center)
 
 t0 = 0
+prev_t = 0
+
+
 def reset_time():
-    global t0
+    global t0, prev_t
     t0 = pygame.time.get_ticks() / 1000
+    prev_t = 0
 reset_time()
 
-sound = False
 
-def update(body1, with_sound=False):
-    global sound
-    y = body1.y
-    t = pygame.time.get_ticks() / 1000 -t0
-    y1 = y + v * t + 0.5 * g * t**2
-    body1.y = y1
-
-    if with_sound and sound:
-        sound = generate_tone(y + 440, 0.06)
-        sound.play()
-
-
-
-pygame.mixer.init(16000, -16, 2, 2048)
-
-# Example: Play an A4 note (440 Hz) for 1 second
-frequency = 440  # Hz (A4 note)
-# duration = 1.0  # seconds
-
-
-v = 0
+def update():
+    global pos, vel, prev_t
+    
+    current_t = pygame.time.get_ticks() / 1000 - t0
+    dt = current_t - prev_t
+    
+    # Calculate direction vector from ball to center (gravity source)
+    r = center - pos
+    
+    # Calculate distance
+    distance = np.linalg.norm(r)
+    
+    # Normalize the direction vector
+    if distance > 0:
+        r_hat = r / distance
+    else:
+        r_hat = np.array([0, 0])
+    
+    # Calculate gravitational force (stronger when closer)
+    # Using inverse square law but with a minimum distance to prevent extreme forces
+    min_distance = 50  # Prevent extreme forces when very close
+    effective_distance = max(distance, min_distance)
+    force = g * r_hat / (effective_distance / 100)**2
+    
+    # Update velocity using force and time step
+    vel = vel + force * dt
+    
+    # Update position using velocity and time step
+    pos = pos + vel * dt
+    
+    prev_t = current_t
 counter = 0
 freeze = False
 
 
-while all([body1.y < height - radius, body2.y < height - radius]):
+# Main game loop
+while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-        # print(event)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 print("Space bar was pressed")
@@ -70,14 +82,19 @@ while all([body1.y < height - radius, body2.y < height - radius]):
 
     if not freeze:
         counter += 1
-        update(body1, True if not counter % 10 else False)
-        update(body2)
-        update(cathal)
+        update()
+        
+        # Check if ball is out of bounds
+        if (pos[0] < radius or pos[0] > width - radius or 
+            pos[1] < radius or pos[1] > height - radius):
+            # Reset position to top left
+            pos = np.array([0 + radius, 0 + radius])
+            vel = np.array([50.0, 20.0])  # Same initial velocity on reset
+            reset_time()
+            prev_t = 0
 
         screen.fill((255, 255, 255))
-        pygame.draw.circle(screen, (255, 0, 0), (body1.x, body1.y), radius)
-        pygame.draw.circle(screen, (0, 0, 0), (body2.x, body2.y), radius)
-        pygame.draw.circle(screen, (255, 95, 7), (cathal.x, cathal.y), radius)
-
+        pygame.draw.circle(screen, (255, 0, 0), (int(pos[0]), int(pos[1])), radius)
+        pygame.draw.circle(screen, (0, 255, 0), (width//2, height//2), radius)
         pygame.display.flip()
         clock.tick(60)
