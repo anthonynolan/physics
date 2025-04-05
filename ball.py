@@ -6,14 +6,14 @@ import random
 
 pygame.init()
 
-SCREEN_WIDTH = 1600
+SCREEN_WIDTH = 1360
 SCREEN_HEIGHT = 1000
 DASHBOARD_WIDTH = 200
 SIMULATION_WIDTH = SCREEN_WIDTH - DASHBOARD_WIDTH
 
-radius = 25
+radius = 50
 
-g = 200.0  # Increased by 10x for faster movement
+g = 200.0  
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
@@ -32,6 +32,7 @@ for i in range(high):
 t0 = 0
 prev_t = 0
 
+centre_color = [0, 255, 0]
 
 def reset_time():
     global t0, prev_t
@@ -118,7 +119,11 @@ while True:
         
         screen.fill((255, 255, 255))
 
-        pygame.draw.circle(screen, (0, 255, 0), (SCREEN_WIDTH//2, SCREEN_HEIGHT//2), radius)
+        
+        pygame.draw.circle(screen, (1, 0, 254), (SCREEN_WIDTH//2, SCREEN_HEIGHT//2), radius)
+
+
+
         pygame.draw.line(screen, (200, 200, 200), (SIMULATION_WIDTH, 0), (SIMULATION_WIDTH, SCREEN_HEIGHT))
 
         for i in range(high):
@@ -132,7 +137,8 @@ while True:
                 prev_t = 0
 
         
-            pygame.draw.circle(screen, (255, 0, 0), (int(poss[i][0]), int(poss[i][1])), radius)
+            centre_color = [0, counter%255, 0]
+            pygame.draw.circle(screen, centre_color, (int(poss[i][0]), int(poss[i][1])), radius)
         draw_dashboard(screen, g, prev_t, vels[0])
         pygame.display.flip()
         clock.tick(60)
